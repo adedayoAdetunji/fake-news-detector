@@ -832,6 +832,43 @@ def history_articles_by_status(status, limit=20):
     return [history_to_article(entry) for entry in entries]
 
 
+def stored_preview_status(prediction):
+    if is_trusted_source_status(prediction.status):
+        return 'Unreliable', min(prediction.confidence_score or 0, 55)
+    return prediction.status, prediction.confidence_score
+
+
+def stored_preview_warnings(prediction):
+    warnings = ['This is a stored result preview from verification history.']
+
+    if is_trusted_source_status(prediction.status):
+        warnings.append(
+            'This record was saved with a trusted-source label, but source evidence was not stored with old history records.'
+        )
+        warnings.append(
+            'For stored previews, the app marks this as needing review until the claim is checked again from the Check News page.'
+        )
+
+    if prediction.model_results:
+        suspicious_models = [
+            result.get('name')
+            for result in prediction.model_results
+            if result.get('label') == 'Looks suspicious'
+        ]
+        if suspicious_models:
+            warnings.append(
+                f'The computer model flagged this text as suspicious in {len(suspicious_models)} model check(s).'
+            )
+
+    if prediction.domain:
+        warnings.append(f'Original submitted domain: {prediction.domain}.')
+    else:
+        warnings.append('No source domain was submitted with this text.')
+
+    warnings.append('Open Check News and run the text again to get fresh trusted-source and fact-check results.')
+    return warnings
+
+
 def build_model_results(X):
     models = [
         ('Logistic Regression', LrModel),
@@ -1116,11 +1153,12 @@ def prediction_detail(prediction_id):
         prediction.analyzed_text or prediction.summary or prediction.input_text,
         prediction.clickbait_matches or CLICKBAIT_KEYWORDS,
     )
+    display_status, display_confidence = stored_preview_status(prediction)
     return render_template(
         'result.html',
-        status=prediction.status,
-        confidence_score=prediction.confidence_score,
-        warnings=['This is a stored result preview from verification history.'],
+        status=display_status,
+        confidence_score=display_confidence,
+        warnings=stored_preview_warnings(prediction),
         highlighted_text=highlighted_text,
         domain=prediction.domain or '',
         risk_score=prediction.risk_score or 0,
