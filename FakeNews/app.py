@@ -627,18 +627,21 @@ def search_web_sources(text, source_domain='', source_url=''):
             errors.append(google_api_error_message(exc, 'Web search'))
 
     if len(results) < WEB_RESULT_LIMIT or not has_corroborating_trusted_match(results):
-        for query in queries:
+        for query in queries[:2]:
             try:
-                append_unique_results(results, seen_links, search_public_web(query))
+                append_unique_results(results, seen_links, search_public_web(query, timeout=5))
             except requests.RequestException as exc:
                 errors.append(f'Public web fallback failed: {google_api_error_message(exc, "Public web search")}')
             if len(results) >= WEB_RESULT_LIMIT and has_corroborating_trusted_match(results):
                 break
 
-    if corroborating_trusted_count(results) < TRUSTED_CORROBORATION_TARGET and len(results) < WEB_RESULT_LIMIT:
-        for query in queries[:3]:
+    if (
+        corroborating_trusted_count(results) < TRUSTED_CORROBORATION_TARGET
+        and len(results) < WEB_RESULT_LIMIT
+    ):
+        for query in queries[:1]:
             try:
-                append_unique_results(results, seen_links, search_google_news_sources(query, timeout=6))
+                append_unique_results(results, seen_links, search_google_news_sources(query, timeout=4))
             except requests.RequestException as exc:
                 errors.append(f'Google News fallback failed: {google_api_error_message(exc, "Google News search")}')
             except ElementTree.ParseError:
@@ -649,10 +652,13 @@ def search_web_sources(text, source_domain='', source_url=''):
             ):
                 break
 
-    if corroborating_trusted_count(results) < TRUSTED_CORROBORATION_TARGET and len(results) < WEB_RESULT_LIMIT:
-        for query in focused_queries:
+    if (
+        corroborating_trusted_count(results) < TRUSTED_CORROBORATION_TARGET
+        and len(results) < WEB_RESULT_LIMIT
+    ):
+        for query in focused_queries[:4]:
             try:
-                append_unique_results(results, seen_links, search_public_web(query, timeout=6))
+                append_unique_results(results, seen_links, search_public_web(query, timeout=4))
             except requests.RequestException as exc:
                 errors.append(f'Trusted-domain fallback failed: {google_api_error_message(exc, "Trusted-domain search")}')
             if (
