@@ -735,12 +735,14 @@ def external_fact_check_signal(fact_check):
     return None, ''
 
 
-def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake, fact_check, web_verification, source_domain=''):
+def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake, fact_check, web_verification, source_domain='', source_type='text'):
     fact_signal, fact_source = external_fact_check_signal(fact_check)
     trusted_matches = web_verification.get('trusted_matches', [])
     trusted_count = len(trusted_matches)
     corroborating_count = sum(1 for result in trusted_matches if result.get('source_type') != 'submitted_url')
     known_source_domain = bool(source_domain and is_known_news_domain(source_domain))
+    enough_typed_text_sources = source_type == 'text' and corroborating_count >= 2
+    enough_url_sources = source_type == 'url' and trusted_count >= 1
 
     if fact_signal:
         note = f'A reviewed fact-check from {fact_source} was found, so the final result was updated.'
@@ -748,14 +750,14 @@ def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake
             return 'Unreliable', min(confidence_score, 65), note
         return fact_signal, max(confidence_score, 75), note
 
-    if trusted_count and model_status != 'Fake':
+    if model_status != 'Fake' and (enough_typed_text_sources or enough_url_sources):
         return (
             REPORTED_BY_TRUSTED_SOURCES_STATUS,
             max(confidence_score, 70),
             f'The story was found on trusted sources ({trusted_count} match(es)), so the final result uses those sources first.',
         )
 
-    if model_status == 'Fake' and corroborating_count >= 1:
+    if model_status == 'Fake' and (enough_typed_text_sources or enough_url_sources):
         return (
             REPORTED_BY_TRUSTED_SOURCES_STATUS,
             70,
@@ -1023,6 +1025,10 @@ def predict():
         warnings.append('Web search found results, but none came from the trusted source list.')
     elif web_verification['configured'] and not web_verification['error']:
         warnings.append('Web search returned no matching source results for this input.')
+    if source_type == 'text' and len(web_verification.get('trusted_matches', [])) == 1:
+        warnings.append(
+            'Only one trusted-source search result was found for this typed text, so the app does not treat it as confirmed by trusted sources.'
+        )
 
     adjusted_status, adjusted_confidence, adjustment_note = apply_evidence_adjustment(
         status,
@@ -1032,6 +1038,7 @@ def predict():
         fact_check,
         web_verification,
         domain,
+        source_type,
     )
     if adjustment_note:
         warnings.append(adjustment_note)
@@ -1129,6 +1136,7 @@ def prediction_detail(prediction_id):
         clickbait_matches=prediction.clickbait_matches or [],
         fact_check=empty_fact_check_state(),
         web_verification=empty_web_verification_state(),
+        is_stored_preview=True,
         **page_auth_context(),
     )
 

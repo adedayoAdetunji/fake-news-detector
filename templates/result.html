@@ -96,6 +96,12 @@
 
       <section class="panel wide-panel" style="margin-bottom: 18px">
         <h1>What We Found</h1>
+        {% if is_stored_preview %}
+        <p class="muted">
+          This history preview shows the saved final result. Live trusted-source and fact-check
+          evidence is checked on the first result screen and is not stored in history.
+        </p>
+        {% else %}
         <p class="muted">
           Trusted news/source matches:
           {% if web_verification.configured %}{{ web_verification.trusted_matches|length }}{% else %}0{% endif %}.
@@ -105,6 +111,7 @@
         <p class="muted">
           The computer model is used as a support check. Trusted sources and reviewed fact-checks matter more.
         </p>
+        {% endif %}
       </section>
 
       <section class="admin-grid">
