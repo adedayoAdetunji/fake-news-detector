@@ -1,34 +1,98 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Fake news Detector</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Check News</title>
     <link
       rel="stylesheet"
       type="text/css"
       href="{{ url_for('static', filename='home.css')}}"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    />
   </head>
   <body>
-    <section class="news">
-      <form class="form" method="POST" action="/predict" autocomplete="off">
-        <h2>Real or Fake ? Let's Find Out !</h2>
-        <input
-          type="text"
-          name="article"
-          id="article"
-          placeholder="Enter news article here..."
-          onfocus="this.value = ''"
-          ;
-        />
-        <button type="submit" id="submit" class="submit">Verify</button>
-        <span class="back"><a href="/">Go Back</a></span>
-      </form>
-    </section>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/">FakeNews Detector</a>
+        <nav class="nav">
+          <a href="/dashboard">Dashboard</a>
+          <a href="/history">History</a>
+          <a href="/report">Report</a>
+          <a href="/admin">Admin</a>
+          {% if current_admin %}
+          <form method="POST" action="/admin/logout">
+            <button type="submit" class="link-button">Admin Logout</button>
+          </form>
+          {% endif %}
+          {% if current_user %}
+          <form method="POST" action="/logout">
+            <button type="submit" class="link-button">Logout</button>
+          </form>
+          {% else %}
+          <a href="/login">User Login</a>
+          {% endif %}
+        </nav>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="alerts">
+        {% for category, message in messages %}
+        <p class="alert {{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <section class="workspace">
+        <aside class="summary-panel">
+          <p class="eyebrow">Verification workspace</p>
+          <h1>Check a story before it spreads.</h1>
+          <p>
+            Paste article text or a URL. The system will score confidence,
+            highlight deceptive wording, and flag suspicious domains.
+          </p>
+          <div class="status-strip">
+            <span>Text analysis</span>
+            <span>URL checks</span>
+            <span>Domain risk</span>
+          </div>
+          {% if current_user %}
+          <p class="signed-in">Signed in as {{ current_user.username }}</p>
+          {% else %}
+          <div class="account-actions">
+            <a href="/register">Create user account</a>
+            <a href="/login">Sign in</a>
+          </div>
+          {% endif %}
+        </aside>
+
+        <form class="checker" method="POST" action="/predict" autocomplete="off">
+          <div class="field-group">
+            <label for="article">News text</label>
+            <textarea
+              name="article"
+              id="article"
+              rows="10"
+              placeholder="Paste the article headline or body text here..."
+            ></textarea>
+          </div>
+
+          <div class="divider"><span>or</span></div>
+
+          <div class="field-group">
+            <label for="news_url">Article URL</label>
+            <input
+              type="url"
+              name="news_url"
+              id="news_url"
+              placeholder="https://example.com/news/story"
+            />
+          </div>
+
+          <button type="submit" class="submit">Run verification</button>
+        </form>
+      </section>
+    </main>
   </body>
 </html>

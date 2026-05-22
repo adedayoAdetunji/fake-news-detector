@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verification Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
+    <style>
+      .result-badge {
+        display: inline-flex;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-weight: 800;
+        background: #eef5f1;
+        color: #216b58;
+      }
+      .highlight {
+        background: #f8e7a1;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .analysis-box {
+        background: #fbfcfc;
+        border: 1px solid #dde5e1;
+        border-radius: 8px;
+        padding: 18px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+      .warning-list {
+        margin: 0;
+        padding-left: 18px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <a class="brand" href="/home">Verification Result</a>
+          <p class="muted">
+            Trusted sources and fact-checks are checked first. The computer model is only a guide.
+          </p>
+        </div>
+        <nav class="nav">
+          <a href="/home">Check News</a>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/history">History</a>
+          {% if current_admin %}
+          <a href="/admin">Admin Panel</a>
+          <form method="POST" action="/admin/logout">
+            <button type="submit" class="link-button">Admin Logout</button>
+          </form>
+          {% elif current_user %}
+          <span class="nav-label">User: {{ current_user.username }}</span>
+          <form method="POST" action="/logout">
+            <button type="submit" class="link-button">Logout</button>
+          </form>
+          {% else %}
+          <a href="/login">User Login</a>
+          <a href="/admin/login">Admin Login</a>
+          {% endif %}
+        </nav>
+      </header>
+
+      <section class="metric-grid">
+        <article class="metric-card">
+          <p class="eyebrow">Final result</p>
+          <strong>{{ status_label(status) }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Confidence</p>
+          <strong>{{ confidence_score }}%</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Domain</p>
+          <strong style="font-size: 1rem">{{ domain or '-' }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Risk score</p>
+          <strong>{{ risk_score }}</strong>
+        </article>
+      </section>
+
+      {% if warnings %}
+      <section class="panel wide-panel" style="margin-bottom: 18px">
+        <h1>Review Notes</h1>
+        <ul class="warning-list">
+          {% for warning in warnings %}
+          <li>{{ warning }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      <section class="panel wide-panel" style="margin-bottom: 18px">
+        <h1>What We Found</h1>
+        <p class="muted">
+          Trusted news/source matches:
+          {% if web_verification.configured %}{{ web_verification.trusted_matches|length }}{% else %}0{% endif %}.
+          Fact-check matches:
+          {% if fact_check.configured %}{{ fact_check.matches|length }}{% else %}0{% endif %}.
+        </p>
+        <p class="muted">
+          The computer model is used as a support check. Trusted sources and reviewed fact-checks matter more.
+        </p>
+      </section>
+
+      <section class="admin-grid">
+        <article class="panel">
+          <h1>Computer Model Check</h1>
+          {% if model_results %}
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Result</th>
+                  <th>Real score</th>
+                  <th>Suspicious score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for result in model_results %}
+                <tr>
+                  <td>{{ result.name }}</td>
+                  <td>{{ result.label }}</td>
+                  <td>{{ result.true_probability }}%</td>
+                  <td>{{ result.fake_probability }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="muted">Model scoring was skipped because the input was not enough for reliable analysis.</p>
+          {% endif %}
+        </article>
+
+        <article class="panel">
+          <h1>Analyzed Preview</h1>
+          <div class="analysis-box">{{ highlighted_text|safe }}</div>
+        </article>
+      </section>
+
+      <section class="panel wide-panel" style="margin-top: 18px">
+        <h1>Google Fact Check</h1>
+        {% if not fact_check.configured %}
+        <p class="muted">
+          Google Fact Check lookup is not configured. Add
+          <strong>GOOGLE_FACT_CHECK_API_KEY</strong> to your environment to enable it.
+        </p>
+        {% elif fact_check.error %}
+        <p class="muted">{{ fact_check.error }}</p>
+        {% elif fact_check.matches %}
+        <p class="muted">Search query: {{ fact_check.query }}</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Checked claim</th>
+                <th>Publisher</th>
+                <th>Rating</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in fact_check.matches %}
+              <tr>
+                <td>
+                  <strong>{{ match.text }}</strong>
+                  {% if match.claimant %}
+                  <p class="muted">Claimant: {{ match.claimant }}</p>
+                  {% endif %}
+                </td>
+                <td>{{ match.publisher or match.publisher_site or '-' }}</td>
+                <td>{{ match.rating or '-' }}</td>
+                <td>
+                  {% if match.url %}
+                  <a href="{{ match.url }}" target="_blank" rel="noopener">Open review</a>
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="muted">
+          No related checked claims were found for this input. That does not prove
+          the claim is true; it only means Google returned no matching fact-check.
+        </p>
+        {% endif %}
+      </section>
+
+      <section class="panel wide-panel" style="margin-top: 18px">
+        <h1>Internet Source Check</h1>
+        {% if not web_verification.configured %}
+        <p class="muted">
+          Google Custom Search is not configured. Add
+          <strong>GOOGLE_SEARCH_API_KEY</strong> and
+          <strong>GOOGLE_SEARCH_ENGINE_ID</strong> to your environment for Google-backed results.
+        </p>
+        {% elif web_verification.results %}
+        {% if web_verification.error %}
+        <p class="muted">{{ web_verification.error }}</p>
+        {% endif %}
+        <p class="muted">
+          Search query: {{ web_verification.query }}. Trusted news/source matches:
+          {{ web_verification.trusted_matches|length }} of
+          {{ web_verification.results|length }}.
+        </p>
+        {% if web_verification.queries and web_verification.queries|length > 1 %}
+        <p class="muted">
+          Search strategy: submitted trusted URL check, broad claim search, cross-source search,
+          Nigerian trusted source groups, Google News fallback, and focused publisher-by-publisher checks.
+        </p>
+        {% endif %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Domain</th>
+                <th>Source check</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for result in web_verification.results %}
+              <tr>
+                <td>
+                  <a href="{{ result.link }}" target="_blank" rel="noopener">
+                    <strong>{{ result.title }}</strong>
+                  </a>
+                  <p class="muted">{{ result.snippet }}</p>
+                </td>
+                <td>{{ result.domain or '-' }}</td>
+                <td>
+                  {% if result.trusted and result.source_type == 'submitted_url' %}
+                  Submitted link is trusted
+                  {% elif result.trusted and result.source_type == 'google_news' %}
+                  Trusted news source
+                  {% elif result.trusted %}
+                  Trusted source
+                  {% else %}
+                  Needs review
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        {% if web_verification.error %}
+        <p class="muted">{{ web_verification.error }}</p>
+        {% endif %}
+        <p class="muted">
+          No web source matches were found. That does not prove the claim false;
+          it only means the configured search did not return source evidence.
+        </p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

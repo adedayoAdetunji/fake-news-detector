@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <a class="brand" href="/admin">Admin Dashboard</a>
+          <p class="muted">Signed in as {{ admin_user.username }}</p>
+        </div>
+        <nav class="nav">
+          <span class="nav-label">Role: Admin</span>
+          <a href="/home">Check News</a>
+          <a href="/dashboard">User Dashboard</a>
+          <a href="/history">History</a>
+          <form method="POST" action="/admin/logout">
+            <button type="submit" class="link-button">Logout</button>
+          </form>
+        </nav>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="alerts">
+        {% for category, message in messages %}
+        <p class="alert {{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <section class="metric-grid">
+        <article class="metric-card">
+          <p class="eyebrow">Checks</p>
+          <strong>{{ total_checks }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Reports</p>
+          <strong>{{ total_reports }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Pending reports</p>
+          <strong>{{ pending_reports }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Latest signal</p>
+          <strong>{{ latest.status if latest else '-' }}</strong>
+        </article>
+      </section>
+
+      <section class="admin-grid">
+        <article class="panel">
+          <h1>Manage Users</h1>
+          <form class="form-grid" method="POST" action="/admin/users">
+            <div class="field-group">
+              <label for="username">Username</label>
+              <input id="username" name="username" required />
+            </div>
+            <div class="field-group">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" required />
+            </div>
+            <div class="field-group">
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" required />
+            </div>
+            <button class="submit" type="submit">Create user</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h1>Recent Checks</h1>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Input</th>
+                  <th>Result</th>
+                  <th>Confidence</th>
+                  <th>Risk</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in history %}
+                <tr>
+                  <td class="truncate">{{ entry.input_text }}</td>
+                  <td>{{ status_label(entry.status) }}</td>
+                  <td>{{ entry.confidence_score }}%</td>
+                  <td>{{ entry.risk_score }}</td>
+                  <td>
+                    <a href="/history/{{ entry.id }}">Preview</a>
+                    <form class="inline-form" method="POST" action="/admin/history/{{ entry.id }}/delete">
+                      <button type="submit">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="muted">No checks yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel wide-panel">
+        <h1>User Records</h1>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in regular_users %}
+              <tr>
+                <td colspan="4">
+                  <form class="user-row" method="POST" action="/admin/users/{{ user.id }}/update">
+                    <input name="username" value="{{ user.username }}" required />
+                    <input name="email" type="email" value="{{ user.email }}" required />
+                    <label class="check-row">
+                      <input name="is_active" type="checkbox" {% if user.is_active %}checked{% endif %} />
+                      Active
+                    </label>
+                    <input name="password" type="password" placeholder="New password" />
+                    <button type="submit">Update</button>
+                  </form>
+                  <form method="POST" action="/admin/users/{{ user.id }}/delete" class="delete-form">
+                    <button type="submit">Delete user</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="muted">No users yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

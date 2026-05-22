@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <a class="brand" href="/dashboard">FakeNews Detector</a>
+          <p class="muted">Recent checks using trusted sources, fact-checks, and the computer model.</p>
+        </div>
+        <nav class="nav">
+          <a href="/home">Check News</a>
+          <a href="/history">History</a>
+          {% if current_admin %}
+          <a href="/admin">Admin Panel</a>
+          {% elif current_user %}
+          <span class="nav-label">User: {{ current_user.username }}</span>
+          {% else %}
+          <a href="/login">User Login</a>
+          <a href="/admin/login">Admin Login</a>
+          {% endif %}
+        </nav>
+      </header>
+
+      <section class="metric-grid">
+        <article class="metric-card">
+          <p class="eyebrow">Total checks</p>
+          <strong>{{ total_checks }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Trusted reports</p>
+          <strong>{{ total_source_backed }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Needs review</p>
+          <strong>{{ total_unreliable }}</strong>
+        </article>
+        <article class="metric-card">
+          <p class="eyebrow">Likely fake</p>
+          <strong>{{ total_fake }}</strong>
+        </article>
+      </section>
+
+      <section class="panel wide-panel">
+        <h1>Latest Activity</h1>
+        <p class="muted">
+          These are final results from source checks, fact-checks, and the computer model.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Input</th>
+                <th>Result</th>
+                <th>Confidence</th>
+                <th>Domain risk</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history %}
+              <tr>
+                <td>{{ entry.timestamp }}</td>
+                <td class="truncate">{{ entry.input_text }}</td>
+                <td>{{ status_label(entry.status) }}</td>
+                <td>{{ entry.confidence_score }}%</td>
+                <td>{{ entry.risk_score }}</td>
+                <td><a href="/history/{{ entry.id }}">Preview</a></td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="muted">No checks yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

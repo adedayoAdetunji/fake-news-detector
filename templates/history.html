@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verification History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <a class="brand" href="/history">Verification History</a>
+          <p class="muted">Saved checks from this app.</p>
+        </div>
+        <nav class="nav">
+          <a href="/home">Check News</a>
+          <a href="/dashboard">Dashboard</a>
+          {% if current_admin %}
+          <a href="/admin">Admin Panel</a>
+          {% elif current_user %}
+          <span class="nav-label">User: {{ current_user.username }}</span>
+          {% else %}
+          <a href="/login">User Login</a>
+          <a href="/admin/login">Admin Login</a>
+          {% endif %}
+        </nav>
+      </header>
+
+      <section class="panel wide-panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Input</th>
+                <th>Result</th>
+                <th>Confidence</th>
+                <th>Domain</th>
+                <th>Risk</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history %}
+              <tr>
+                <td>{{ entry.timestamp }}</td>
+                <td class="truncate">{{ entry.input_text }}</td>
+                <td>{{ status_label(entry.status) }}</td>
+                <td>{{ entry.confidence_score }}%</td>
+                <td>{{ entry.domain or '-' }}</td>
+                <td>{{ entry.risk_score }}</td>
+                <td>
+                  <a href="/history/{{ entry.id }}">Preview</a>
+                  {% if current_admin %}
+                  <form class="inline-form" method="POST" action="/admin/history/{{ entry.id }}/delete">
+                    <button type="submit">Delete</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="muted">No history available yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

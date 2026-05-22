@@ -1,22 +1,49 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>News App</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='news.css') }}">
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <span class="title">Latest News</span>
-    <ol>
-        {% for article in articles %}
-            <li class="article">
-                <h2 class="article-title">{{ article.title }}</h2>
-                <p class="article-description">{{ article.content }}</p>
-                <p class="article-info">Published: {{ article.pubDate }}</p>
-                <p class="article-info">Creator: {{ article.creator }}</p>
-                <a class="read-more" href="{{ article.link }}">Read More</a>
-            </li>
-        {% endfor %}
-    </ol>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentic News History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="news-header">
+      <div>
+        <span class="title">Authentic News</span>
+        <p class="subtitle">Recent checks that look real or were reported by trusted sources.</p>
+      </div>
+      <nav class="news-nav">
+        <a href="/home">Check News</a>
+        <a href="/history">History</a>
+        <a href="/recentFake">Recent Fake</a>
+      </nav>
+    </header>
+
+    <main class="news-list">
+      {% for article in articles %}
+      <article class="article">
+        <div class="article-meta">
+          <span>{{ article.pubDate }}</span>
+          <span>{{ article.creator }}</span>
+          <span>{{ article.confidence_score }}% confidence</span>
+        </div>
+        <h2 class="article-title">{{ article.title }}</h2>
+        <p class="article-description">{{ article.content }}</p>
+        <div class="article-actions">
+          <a class="read-more" href="{{ article.detail_link }}">View Verification</a>
+          {% if article.link != article.detail_link %}
+          <a class="secondary-link" href="{{ article.link }}" target="_blank" rel="noopener">Open Source</a>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <section class="empty-state">
+        <h1>No Authentic History Yet</h1>
+        <p>Run a news check that looks real or is reported by trusted sources, then it will appear here.</p>
+        <a class="read-more" href="/home">Check News</a>
+      </section>
+      {% endfor %}
+    </main>
+  </body>
 </html>

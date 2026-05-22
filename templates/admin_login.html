@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f4f7f6;
+        color: #18202f;
+      }
+      .card {
+        width: min(440px, calc(100% - 32px));
+        background: #ffffff;
+        border: 1px solid #dbe3de;
+        border-radius: 8px;
+        padding: 28px;
+        box-shadow: 0 18px 50px rgba(33, 45, 55, 0.1);
+      }
+      h1 { margin: 0 0 8px; }
+      p { color: #64746d; line-height: 1.5; }
+      form { display: grid; gap: 14px; margin-top: 18px; }
+      label { font-weight: 800; }
+      input {
+        width: 100%;
+        border: 1px solid #cad7cf;
+        border-radius: 8px;
+        padding: 12px;
+        font: inherit;
+      }
+      button, a {
+        border-radius: 8px;
+        padding: 12px 14px;
+        font: inherit;
+        text-decoration: none;
+      }
+      button {
+        border: 0;
+        background: #216b58;
+        color: #ffffff;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      a { color: #216b58; padding-left: 0; }
+      .alert {
+        padding: 11px 12px;
+        border: 1px solid #f0b3b0;
+        color: #9b1c1c;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="card">
+      <h1>Admin Login</h1>
+      <p>Sign in to manage verification history, reports, and admin users.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+      {% endwith %}
+      <form method="POST">
+        <div>
+          <label for="username">Username</label>
+          <input id="username" name="username" autocomplete="username" required />
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <button type="submit">Sign in</button>
+        <a href="/login">User login</a>
+        <a href="/home">Back to check news</a>
+      </form>
+    </section>
+  </body>
+</html>

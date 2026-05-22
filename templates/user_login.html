@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Login</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='home.css')}}"
+    />
+    <style>
+      body { display: grid; place-items: center; }
+      .auth-card {
+        width: min(440px, calc(100% - 32px));
+        background: #ffffff;
+        border: 1px solid #dbe3de;
+        border-radius: 8px;
+        padding: 28px;
+        box-shadow: 0 18px 50px rgba(33, 45, 55, 0.1);
+      }
+      .auth-card form { display: grid; gap: 14px; }
+      .auth-card h1 { margin-bottom: 8px; }
+      .auth-links { display: flex; gap: 12px; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <section class="auth-card">
+      <h1>User Login</h1>
+      <p class="muted">Sign in before checking or reporting suspicious news.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="alerts">
+        {% for category, message in messages %}
+        <p class="alert {{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+      <form method="POST">
+        <div class="field-group">
+          <label for="username">Username or email</label>
+          <input id="username" name="username" required />
+        </div>
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required />
+        </div>
+        <button class="submit" type="submit">Sign in</button>
+        <div class="auth-links">
+          <a href="/register">Create account</a>
+          <a href="/admin/login">Admin login</a>
+          <a href="/home">Back to check news</a>
+        </div>
+      </form>
+    </section>
+  </body>
+</html>
