@@ -741,7 +741,6 @@ def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake
     trusted_count = len(trusted_matches)
     corroborating_count = sum(1 for result in trusted_matches if result.get('source_type') != 'submitted_url')
     known_source_domain = bool(source_domain and is_known_news_domain(source_domain))
-    has_strong_corroboration = corroborating_count >= TRUSTED_CORROBORATION_TARGET
 
     if fact_signal:
         note = f'A reviewed fact-check from {fact_source} was found, so the final result was updated.'
@@ -749,20 +748,20 @@ def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake
             return 'Unreliable', min(confidence_score, 65), note
         return fact_signal, max(confidence_score, 75), note
 
-    if has_strong_corroboration and model_status != 'Fake':
+    if trusted_count and model_status != 'Fake':
         return (
             REPORTED_BY_TRUSTED_SOURCES_STATUS,
             max(confidence_score, 70),
-            f'The story was found on multiple trusted sources ({corroborating_count} match(es)), so the final result uses those sources first.',
+            f'The story was found on trusted sources ({trusted_count} match(es)), so the final result uses those sources first.',
         )
 
-    if model_status == 'Fake' and has_strong_corroboration:
+    if model_status == 'Fake' and corroborating_count >= 1:
         return (
             REPORTED_BY_TRUSTED_SOURCES_STATUS,
             70,
             (
-                f'The computer model thought the text looked suspicious, but multiple trusted sources also reported it '
-                f'({corroborating_count} match(es)). The final result follows the trusted sources.'
+                f'The computer model thought the text looked suspicious, but trusted sources also reported it '
+                f'({trusted_count} match(es)). The final result follows the trusted sources.'
             ),
         )
 
@@ -780,7 +779,7 @@ def apply_evidence_adjustment(model_status, confidence_score, avg_true, avg_fake
         return (
             'Unreliable',
             min(confidence_score, 55),
-            'The computer model thought the text looked suspicious, but there was not enough trusted-source or fact-check evidence for a stronger verdict.',
+            'The computer model thought the text looked suspicious, but no trusted source or fact-check proved it is fake.',
         )
 
     return model_status, confidence_score, None
@@ -830,43 +829,6 @@ def history_articles_by_status(status, limit=20):
         .all()
     )
     return [history_to_article(entry) for entry in entries]
-
-
-def stored_preview_status(prediction):
-    if is_trusted_source_status(prediction.status):
-        return 'Unreliable', min(prediction.confidence_score or 0, 55)
-    return prediction.status, prediction.confidence_score
-
-
-def stored_preview_warnings(prediction):
-    warnings = ['This is a stored result preview from verification history.']
-
-    if is_trusted_source_status(prediction.status):
-        warnings.append(
-            'This record was saved with a trusted-source label, but source evidence was not stored with old history records.'
-        )
-        warnings.append(
-            'For stored previews, the app marks this as needing review until the claim is checked again from the Check News page.'
-        )
-
-    if prediction.model_results:
-        suspicious_models = [
-            result.get('name')
-            for result in prediction.model_results
-            if result.get('label') == 'Looks suspicious'
-        ]
-        if suspicious_models:
-            warnings.append(
-                f'The computer model flagged this text as suspicious in {len(suspicious_models)} model check(s).'
-            )
-
-    if prediction.domain:
-        warnings.append(f'Original submitted domain: {prediction.domain}.')
-    else:
-        warnings.append('No source domain was submitted with this text.')
-
-    warnings.append('Open Check News and run the text again to get fresh trusted-source and fact-check results.')
-    return warnings
 
 
 def build_model_results(X):
@@ -1153,12 +1115,11 @@ def prediction_detail(prediction_id):
         prediction.analyzed_text or prediction.summary or prediction.input_text,
         prediction.clickbait_matches or CLICKBAIT_KEYWORDS,
     )
-    display_status, display_confidence = stored_preview_status(prediction)
     return render_template(
         'result.html',
-        status=display_status,
-        confidence_score=display_confidence,
-        warnings=stored_preview_warnings(prediction),
+        status=prediction.status,
+        confidence_score=prediction.confidence_score,
+        warnings=['This is a stored result preview from verification history.'],
         highlighted_text=highlighted_text,
         domain=prediction.domain or '',
         risk_score=prediction.risk_score or 0,
@@ -1168,7 +1129,6 @@ def prediction_detail(prediction_id):
         clickbait_matches=prediction.clickbait_matches or [],
         fact_check=empty_fact_check_state(),
         web_verification=empty_web_verification_state(),
-        is_stored_preview=True,
         **page_auth_context(),
     )
 
