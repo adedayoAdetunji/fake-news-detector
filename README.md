@@ -13,7 +13,7 @@ To run the FakeNews web app locally, follow these steps:
 
 2. Navigate to the project directory:
    ```bash
-   cd FakeNews
+   cd FakeNewsDetector
    ```
 
 3. Install the required dependencies:
@@ -21,12 +21,78 @@ To run the FakeNews web app locally, follow these steps:
    pip install -r requirements.txt
    ```
 
-4. Run the Flask development server:
+4. Initialize the local database:
    ```bash
-   flask run
+   python -m FakeNews.db_init
    ```
 
-5. Open your web browser and access the app at `http://localhost:5000`.
+5. Run the Flask development server:
+   ```bash
+   flask --app FakeNews.app run
+   ```
+
+6. Open your web browser and access the app at `http://localhost:5000`.
+
+By default, development uses a local SQLite database. Set `DATABASE_URL` to a
+MySQL connection string for production storage.
+
+## Local Test URLs
+
+- Check news: `http://127.0.0.1:5000/home`
+- User registration: `http://127.0.0.1:5000/register`
+- User login: `http://127.0.0.1:5000/login`
+- Admin login: `http://127.0.0.1:5000/admin/login`
+- Protected admin dashboard: `http://127.0.0.1:5000/admin`
+
+The database initializer creates a default super admin if one does not already
+exist:
+
+```text
+Username: admin
+Password: admin123
+```
+
+## Google Fact Check
+
+To enable related fact-check matches on the result page, create a Google Cloud
+API key with the Fact Check Tools API enabled, then add it to `.env`:
+
+```env
+GOOGLE_FACT_CHECK_API_KEY=your-google-fact-check-api-key
+```
+
+The app uses Google Fact Check Tools `claims:search` as an evidence layer. It
+does not replace the computer model and it does not prove a claim true when no
+match is found.
+
+## Internet Source Verification
+
+Web source verification can use Google Programmable Search when it is
+configured. Create a Google Programmable Search Engine and a Custom Search JSON
+API key, then add both values to `.env`:
+
+```env
+GOOGLE_SEARCH_API_KEY=your-google-custom-search-api-key
+GOOGLE_SEARCH_ENGINE_ID=your-programmable-search-engine-id
+```
+
+If Google returns `This project does not have the access to Custom Search JSON
+API`, open Google Cloud Console for the same project that owns
+`GOOGLE_SEARCH_API_KEY`, enable **Custom Search JSON API**, confirm the key is
+allowed to call that API, and make sure the Programmable Search Engine is set to
+search the entire web or the domains you want to verify.
+
+If Google Custom Search is rejected or unavailable, the app falls back to a
+Google News RSS lookup and public web search so the result page can still show
+source evidence. The app marks matches from the trusted source list, including
+Nigerian publishers and public sources such as Punch, Guardian Nigeria, Premium
+Times, Channels TV, Vanguard, Daily Trust, Leadership, The Cable, BusinessDay,
+Nigerian Tribune, NBS, INEC, CBN, NCDC, and WHO.
+
+Final result labels are written in simple language. The app shows
+`Reported by trusted sources` when trusted publishers report the same story,
+`Needs more review` when the computer model is not enough, and `Likely fake`
+only when stronger outside evidence supports that result.
 
 ## Project Structure
 
